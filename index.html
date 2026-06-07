@@ -210,6 +210,18 @@
             workers: state.workers.map(w => w.id === id ? { ...w, ...updates } : w),
           };
         }
+        case 'ADD_PROPERTY': {
+          return {
+            ...state,
+            properties: [{ ...action.payload, id: generateId(), status: 'pending', paymentStatus: 'pending', lastCollection: null }, ...state.properties],
+          };
+        }
+        case 'ADD_WORKER': {
+          return {
+            ...state,
+            workers: [{ ...action.payload, id: generateId(), active: true }, ...state.workers],
+          };
+        }
         default:
           return state;
       }
@@ -675,9 +687,13 @@
     // ─── Admin Dashboard ───
 
     function AdminDashboard({ state, dispatch }) {
-      const [tab, setTab] = useState('overview'); // overview | wards | workers | collections | analytics
+      const [tab, setTab] = useState('overview');
       const [editingProp, setEditingProp] = useState(null);
       const [editForm, setEditForm] = useState({});
+      const [showAddProperty, setShowAddProperty] = useState(false);
+      const [addPropForm, setAddPropForm] = useState({ houseNo: '', resident: '', ward: 14, fee: 50, phone: '' });
+      const [showAddWorker, setShowAddWorker] = useState(false);
+      const [addWorkerForm, setAddWorkerForm] = useState({ name: '', ward: 14, phone: '' });
       const { properties, collections, payments, workers, pickupRequests } = state;
 
       const totalHouses = properties.length;
@@ -798,6 +814,11 @@
 
           {tab === 'wards' && (
             <section aria-label="വാർഡ് പ്രകടനം" role="tabpanel">
+              <button onClick={() => setShowAddProperty(true)}
+                aria-label="പുതിയ വീട് രജിസ്റ്റർ ചെയ്യുക"
+                className="w-full bg-white border-2 border-dashed border-emerald-400 text-emerald-700 min-h-[52px] rounded-2xl font-bold text-base hover:bg-emerald-50 transition focus:outline-none focus:ring-4 focus:ring-emerald-300 flex items-center justify-center gap-2 mb-4">
+                <span className="text-xl">+</span> പുതിയ വീട് രജിസ്റ്റർ ചെയ്യുക
+              </button>
               <div className="grid gap-4">
                 {wardStats.map(w => (
                   <div key={w.ward} className="bg-white rounded-2xl p-6 border-2 shadow-sm">
@@ -871,6 +892,11 @@
 
           {tab === 'workers' && (
             <section aria-label="പ്രവർത്തക ഉൽപ്പാദനക്ഷമത" role="tabpanel">
+              <button onClick={() => setShowAddWorker(true)}
+                aria-label="പുതിയ പ്രവർത്തകനെ രജിസ്റ്റർ ചെയ്യുക"
+                className="w-full bg-white border-2 border-dashed border-emerald-400 text-emerald-700 min-h-[52px] rounded-2xl font-bold text-base hover:bg-emerald-50 transition focus:outline-none focus:ring-4 focus:ring-emerald-300 flex items-center justify-center gap-2 mb-4">
+                <span className="text-xl">+</span> പുതിയ പ്രവർത്തകനെ രജിസ്റ്റർ ചെയ്യുക
+              </button>
               <div className="space-y-4">
                 {workers.map(w => {
                   const assignedProps = properties.filter(p => p.ward === w.ward);
@@ -1116,6 +1142,128 @@
                     }}
                       className="flex-1 min-h-[52px] rounded-2xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 transition focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-2">
                       <Icons.Check size={18} aria-hidden="true"/> സംരക്ഷിക്കുക
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
+          {/* Register House modal */}
+          {showAddProperty && createPortal(
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setShowAddProperty(false)} role="dialog" aria-modal="true" aria-label="പുതിയ വീട് രജിസ്റ്റർ ചെയ്യുക">
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-bold text-xl flex items-center gap-2">🏠 പുതിയ വീട്</h2>
+                  <button onClick={() => setShowAddProperty(false)} aria-label="അടയ്ക്കുക" className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    <Icons.X size={24} aria-hidden="true"/>
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.Tag size={16} className="text-emerald-600" aria-hidden="true"/> വീട് നമ്പർ</label>
+                    <input type="text" value={addPropForm.houseNo} placeholder="ഉദാ: H-1020"
+                      onChange={e => setAddPropForm(f => ({...f, houseNo: e.target.value}))}
+                      className="w-full rounded-xl border-2 border-slate-200 p-4 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400"/>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.User size={16} className="text-emerald-600" aria-hidden="true"/> താമസക്കാരൻ</label>
+                    <input type="text" value={addPropForm.resident} placeholder="പേര്"
+                      onChange={e => setAddPropForm(f => ({...f, resident: e.target.value}))}
+                      className="w-full rounded-xl border-2 border-slate-200 p-4 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400"/>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.Map size={16} className="text-emerald-600" aria-hidden="true"/> വാർഡ്</label>
+                      <select value={addPropForm.ward}
+                        onChange={e => setAddPropForm(f => ({...f, ward: parseInt(e.target.value)}))}
+                        className="w-full rounded-xl border-2 border-slate-200 p-4 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                        {[...new Set(properties.map(p => p.ward))].sort().map(w => (
+                          <option key={w} value={w}>വാർഡ് {w}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.DollarSign size={16} className="text-emerald-600" aria-hidden="true"/> ഫീസ്</label>
+                      <input type="number" min="0" value={addPropForm.fee}
+                        onChange={e => setAddPropForm(f => ({...f, fee: parseInt(e.target.value) || 0}))}
+                        className="w-full rounded-xl border-2 border-slate-200 p-4 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400"/>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.Phone size={16} className="text-emerald-600" aria-hidden="true"/> ഫോൺ</label>
+                    <input type="tel" value={addPropForm.phone} placeholder="ഫോൺ നമ്പർ"
+                      onChange={e => setAddPropForm(f => ({...f, phone: e.target.value}))}
+                      className="w-full rounded-xl border-2 border-slate-200 p-4 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400"/>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setShowAddProperty(false)}
+                      className="flex-1 min-h-[52px] rounded-2xl border-2 border-slate-200 font-bold text-base hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-2">
+                      <Icons.X size={18} aria-hidden="true"/> റദ്ദാക്കുക
+                    </button>
+                    <button onClick={() => {
+                      if (!addPropForm.houseNo || !addPropForm.resident) return;
+                      dispatch({ type: 'ADD_PROPERTY', payload: addPropForm });
+                      setAddPropForm({ houseNo: '', resident: '', ward: 14, fee: 50, phone: '' });
+                      setShowAddProperty(false);
+                    }}
+                      className="flex-1 min-h-[52px] rounded-2xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 transition focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-2">
+                      <Icons.Check size={18} aria-hidden="true"/> രജിസ്റ്റർ ചെയ്യുക
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
+          {/* Register Worker modal */}
+          {showAddWorker && createPortal(
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setShowAddWorker(false)} role="dialog" aria-modal="true" aria-label="പുതിയ പ്രവർത്തകനെ രജിസ്റ്റർ ചെയ്യുക">
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-bold text-xl flex items-center gap-2">🧑‍🌾 പുതിയ പ്രവർത്തകൻ</h2>
+                  <button onClick={() => setShowAddWorker(false)} aria-label="അടയ്ക്കുക" className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    <Icons.X size={24} aria-hidden="true"/>
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.User size={16} className="text-emerald-600" aria-hidden="true"/> പേര്</label>
+                    <input type="text" value={addWorkerForm.name} placeholder="പേര്"
+                      onChange={e => setAddWorkerForm(f => ({...f, name: e.target.value}))}
+                      className="w-full rounded-xl border-2 border-slate-200 p-4 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400"/>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.Map size={16} className="text-emerald-600" aria-hidden="true"/> വാർഡ്</label>
+                    <select value={addWorkerForm.ward}
+                      onChange={e => setAddWorkerForm(f => ({...f, ward: parseInt(e.target.value)}))}
+                      className="w-full rounded-xl border-2 border-slate-200 p-4 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                      {[...new Set(properties.map(p => p.ward))].sort().map(w => (
+                        <option key={w} value={w}>വാർഡ് {w}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.Phone size={16} className="text-emerald-600" aria-hidden="true"/> ഫോൺ</label>
+                    <input type="tel" value={addWorkerForm.phone} placeholder="ഫോൺ നമ്പർ"
+                      onChange={e => setAddWorkerForm(f => ({...f, phone: e.target.value}))}
+                      className="w-full rounded-xl border-2 border-slate-200 p-4 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400"/>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setShowAddWorker(false)}
+                      className="flex-1 min-h-[52px] rounded-2xl border-2 border-slate-200 font-bold text-base hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-2">
+                      <Icons.X size={18} aria-hidden="true"/> റദ്ദാക്കുക
+                    </button>
+                    <button onClick={() => {
+                      if (!addWorkerForm.name) return;
+                      dispatch({ type: 'ADD_WORKER', payload: addWorkerForm });
+                      setAddWorkerForm({ name: '', ward: 14, phone: '' });
+                      setShowAddWorker(false);
+                    }}
+                      className="flex-1 min-h-[52px] rounded-2xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 transition focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-2">
+                      <Icons.Check size={18} aria-hidden="true"/> രജിസ്റ്റർ ചെയ്യുക
                     </button>
                   </div>
                 </div>

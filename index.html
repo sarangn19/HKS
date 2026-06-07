@@ -270,7 +270,7 @@
     // ─── Volunteer App ───
 
     function VolunteerApp({ state, dispatch, announce }) {
-      const [view, setView] = useState('list'); // list | collection | receipt
+      const [view, setView] = useState('list');
       const [selectedProp, setSelectedProp] = useState(null);
       const [selectedWard, setSelectedWard] = useState(state.currentVolunteer?.ward || 14);
       const [filterStatus, setFilterStatus] = useState('all');
@@ -294,14 +294,10 @@
       const missed = filteredProps.filter(p => p.status === 'missed').length;
       const pending = filteredProps.filter(p => p.status === 'pending').length;
 
-      // Focus management - moved to App level via announce/lifecycle
-
-      // Preserve draft when navigating back
       const draftRef = useRef(null);
 
       const handleCollect = (prop) => {
         setSelectedProp(prop);
-        // Check if there's a saved draft
         const saved = draftRef.current;
         const existing = state.collections.find(c => c.propertyId === prop.id);
         if (existing) {
@@ -1098,6 +1094,19 @@
                     </div>
                   </div>
                   <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.Map size={16} className="text-emerald-600" aria-hidden="true"/> വാർഡ്</label>
+                    <div className="relative">
+                      <select value={editForm.ward || ''}
+                        onChange={e => setEditForm(f => ({...f, ward: parseInt(e.target.value)}))}
+                        className="w-full rounded-xl border-2 border-slate-200 p-4 pl-10 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 appearance-none">
+                        {[...new Set(state.properties.map(p => p.ward))].sort().map(w => (
+                          <option key={w} value={w}>വാർഡ് {w}</option>
+                        ))}
+                      </select>
+                      <Icons.Map size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true"/>
+                    </div>
+                  </div>
+                  <div>
                     <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.DollarSign size={16} className="text-emerald-600" aria-hidden="true"/> ഫീസ് (₹)</label>
                     <div className="relative">
                       <input type="number" min="0" value={editForm.fee || 0}
@@ -1343,21 +1352,8 @@
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center" aria-hidden="true">
                 <Icons.Users size={28} color="#059669" />
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.Map size={16} className="text-emerald-600" aria-hidden="true"/> വാർഡ്</label>
-                    <div className="relative">
-                      <select value={editForm.ward || ''}
-                        onChange={e => setEditForm(f => ({...f, ward: parseInt(e.target.value)}))}
-                        className="w-full rounded-xl border-2 border-slate-200 p-4 pl-10 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 appearance-none">
-                        {[...new Set(state.properties.map(p => p.ward))].sort().map(w => (
-                          <option key={w} value={w}>വാർഡ് {w}</option>
-                        ))}
-                      </select>
-                      <Icons.Map size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true"/>
-                    </div>
-                  </div>
-                  <div>
+              </div>
+              <div>
                 <h1 className="font-bold text-2xl">{selectedProp.houseNo}</h1>
                 <p className="text-base text-slate-500">{selectedProp.resident} · വാർഡ് {selectedProp.ward}</p>
               </div>

@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HarithaStream</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            emerald: { 50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b' },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect, useReducer, useRef, useCallback, useMemo } = React;
+    const { createPortal } = ReactDOM;
+
+    // ─── Lucide icons as inline SVG components (all aria-hidden for a11y) ───
+    const Svg = (p) => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width={p.size||24} height={p.size||24} viewBox="0 0 24 24" fill="none" stroke={p.color||'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{p.children}</svg>;
+    const Icons = {
+      Wifi: (p) => <Svg {...p}><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.82a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/></Svg>,
+      WifiOff: (p) => <Svg {...p}><line x1="2" y1="2" x2="22" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.56 11.34 3.82"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 12.82a10 10 0 0 1 2.5-1.87"/></Svg>,
+      ArrowLeft: (p) => <Svg {...p}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></Svg>,
+      Map: (p) => <Svg {...p}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></Svg>,
+      CheckCircle: (p) => <Svg {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Svg>,
+      Clock: (p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Svg>,
+      CreditCard: (p) => <Svg {...p}><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></Svg>,
+      Receipt: (p) => <Svg {...p}><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></Svg>,
+      Camera: (p) => <Svg {...p}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></Svg>,
+      AlertCircle: (p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Svg>,
+      MapPin: (p) => <Svg {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Svg>,
+      Trash2: (p) => <Svg {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Svg>,
+      Recycle: (p) => <Svg {...p}><path d="M7 16H4l3-6 3 6"/><path d="M17 16h3l-3-6-3 6"/><path d="M12 16v-4"/><path d="M12 4v4"/><circle cx="12" cy="20" r="2"/></Svg>,
+      BarChart3: (p) => <Svg {...p}><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></Svg>,
+      Users: (p) => <Svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Svg>,
+      TrendingUp: (p) => <Svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></Svg>,
+      RefreshCw: (p) => <Svg {...p}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></Svg>,
+      Sun: (p) => <Svg {...p}><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></Svg>,
+      Cloud: (p) => <Svg {...p}><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></Svg>,
+      Download: (p) => <Svg {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Svg>,
+      Phone: (p) => <Svg {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></Svg>,
+      MessageSquare: (p) => <Svg {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></Svg>,
+      Calendar: (p) => <Svg {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Svg>,
+      ChevronRight: (p) => <Svg {...p}><polyline points="9 18 15 12 9 6"/></Svg>,
+      Filter: (p) => <Svg {...p}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></Svg>,
+      X: (p) => <Svg {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Svg>,
+      Edit: (p) => <Svg {...p}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></Svg>,
+      Home: (p) => <Svg {...p}><path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5h3a1 1 0 0 0 1-1V10"/></Svg>,
+      DollarSign: (p) => <Svg {...p}><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></Svg>,
+      User: (p) => <Svg {...p}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Svg>,
+      Tag: (p) => <Svg {...p}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></Svg>,
+      Check: (p) => <Svg {...p}><polyline points="20 6 9 17 4 12"/></Svg>,
+    };
+
+    // ─── Utilities ───
+    const STORAGE_KEY = 'harithastream_data';
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    const generateId = () => 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+
+    const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+
+    const currentMonth = () => { const d = new Date(); return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
+
+    const formatTime = (d) => new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    const loadState = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch(e) {}
+      return null;
+    };
+
+    const saveState = (state) => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+    };
+
+    // ─── Initial seed data ───
+    const seedProperties = Array.from({ length: 20 }, (_, i) => {
+      const ward = i < 8 ? 14 : 15;
+      return {
+        id: `prop-${i+1}`,
+        houseNo: `H-${1000 + i}`,
+        ward,
+        resident: `${['Krishnan','Sudha','Rajan','Lakshmi','Vijayan','Geetha','Suresh','Radha','Mohan','Shanti','Gopal','Indira','Balakrishnan','Sarada','Damodaran','Vimala','Sukumaran','Thankamani','Raveendran','Sosamma'][i]}`,
+        phone: `9876${String(54000 + i).slice(1)}`,
+        status: ['pending','pending','collected','pending','pending','missed','pending','collected','pending','pending','collected','pending','pending','collected','pending','missed','pending','pending','collected','pending'][i],
+        paymentStatus: ['unpaid','paid','paid','unpaid','unpaid','paid','unpaid','paid','unpaid','unpaid','paid','unpaid','unpaid','paid','paid','unpaid','unpaid','paid','paid','unpaid'][i],
+        lastCollection: null,
+        fee: 50,
+      };
+    });
+
+    const initialWorkers = [
+      { id: 'w1', name: 'Shaji Kumar', ward: 14, phone: '9876543210', active: true },
+      { id: 'w2', name: 'Reena Mol', ward: 15, phone: '9876543211', active: true },
+    ];
+
+    const getInitialState = () => {
+      const saved = loadState();
+      if (saved) return saved;
+      return {
+        properties: seedProperties,
+        workers: initialWorkers,
+        collections: [],
+        payments: [],
+        syncQueue: [],
+        pickupRequests: [],
+        currentVolunteer: initialWorkers[0],
+      };
+    };
+
+    // ─── Reducer ───
+    function reducer(state, action) {
+      switch (action.type) {
+        case 'COLLECT': {
+          const { propertyId, volunteerId, photo, location, wasteTypes, paymentCollected, fee } = action.payload;
+          const collection = {
+            id: generateId(),
+            propertyId,
+            volunteerId,
+            date: today(),
+            timestamp: new Date().toISOString(),
+            photo: photo || null,
+            location: location || null,
+            wasteTypes: wasteTypes || ['mixed'],
+            paymentCollected: !!paymentCollected,
+            fee: fee || 0,
+          };
+          const updatedProperties = state.properties.map(p =>
+            p.id === propertyId
+              ? { ...p, status: 'collected', lastCollection: new Date().toISOString(), paymentStatus: paymentCollected ? 'paid' : p.paymentStatus }
+              : p
+          );
+          const payment = paymentCollected ? {
+            id: generateId(),
+            propertyId,
+            amount: fee,
+            date: today(),
+            timestamp: new Date().toISOString(),
+            method: 'cash',
+            month: currentMonth(),
+            receiptNo: `RCP-${String(Date.now()).slice(-6)}`,
+          } : null;
+          return {
+            ...state,
+            properties: updatedProperties,
+            collections: [collection, ...state.collections],
+            payments: payment ? [payment, ...state.payments] : state.payments,
+          };
+        }
+        case 'MARK_MISSED': {
+          const { propertyId } = action.payload;
+          return {
+            ...state,
+            properties: state.properties.map(p =>
+              p.id === propertyId ? { ...p, status: 'missed' } : p
+            ),
+          };
+        }
+        case 'UPDATE_PROPERTY': {
+          const updatedProp = action.payload;
+          return {
+            ...state,
+            properties: state.properties.map(p =>
+              p.id === updatedProp.id ? { ...p, ...updatedProp } : p
+            ),
+          };
+        }
+        case 'UPDATE_COLLECTION': {
+          const { collectionId, propertyId, wasteTypes, paymentCollected, fee, photo, location } = action.payload;
+          return {
+            ...state,
+            collections: state.collections.map(c =>
+              c.id === collectionId ? { ...c, wasteTypes: wasteTypes || c.wasteTypes, paymentCollected: paymentCollected !== undefined ? paymentCollected : c.paymentCollected, fee: fee !== undefined ? fee : c.fee, photo: photo !== undefined ? photo : c.photo, location: location !== undefined ? location : c.location } : c
+            ),
+            properties: state.properties.map(p =>
+              p.id === propertyId ? { ...p, paymentStatus: paymentCollected ? 'paid' : p.paymentStatus } : p
+            ),
+          };
+        }
+        case 'ADD_PICKUP_REQUEST': {
+          return {
+            ...state,
+            pickupRequests: [{ ...action.payload, id: generateId(), date: today(), status: 'pending' }, ...state.pickupRequests],
+          };
+        }
+        case 'SET_PROPERTIES': {
+          return { ...state, properties: action.payload };
+        }
+        case 'SET_WORKER': {
+          return { ...state, currentVolunteer: action.payload };
+        }
+        default:
+          return state;
+      }
+    }
+
+    // ─── Components ───
+
+    function RoleSelection({ setRole }) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-slate-100 flex items-center justify-center p-4" role="main">
+          <div className="w-full max-w-md space-y-5">
+            <header className="text-center mb-4">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-100 rounded-2xl mb-4" aria-hidden="true">
+                <Icons.Recycle size={40} color="#059669" />
+              </div>
+              <h1 className="text-3xl font-bold text-slate-800">ഹരിതസ്ട്രീം</h1>
+              <p className="text-base text-slate-500 mt-2">മാലിന്യ ശേഖരണ പ്ലാറ്റ്ഫോം</p>
+            </header>
+            <div role="group" aria-label="റോൾ തിരഞ്ഞെടുക്കുക" className="space-y-4">
+              {[
+                { id: 'volunteer', label: 'HKS പ്രവർത്തകൻ', desc: 'മാലിന്യം ശേഖരിക്കുക', icon: 'Trash2', color: 'emerald', bg: 'bg-emerald-100', iconColor: '#059669', hoverClass: 'hover:border-emerald-400 hover:bg-emerald-50' },
+                { id: 'admin', label: 'അഡ്മിൻ', desc: 'റിപ്പോർട്ടുകളും നിരീക്ഷണവും', icon: 'BarChart3', color: 'blue', bg: 'bg-blue-100', iconColor: '#3b82f6', hoverClass: 'hover:border-blue-400 hover:bg-blue-50' },
+                { id: 'citizen', label: 'താമസക്കാരൻ', desc: 'ഷെഡ്യൂൾ കാണുക ഫീസ് അടയ്ക്കുക', icon: 'Users', color: 'violet', bg: 'bg-violet-100', iconColor: '#7c3aed', hoverClass: 'hover:border-violet-400 hover:bg-violet-50' },
+              ].map((r) => {
+                const IconComp = Icons[r.icon];
+                return (
+                  <button key={r.id} onClick={() => setRole(r.id)}
+                    aria-label={`${r.label} — ${r.desc}`}
+                    className={`w-full bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center gap-5 transition-all focus:outline-none focus:ring-4 focus:ring-emerald-300 min-h-[80px] ${r.hoverClass}`}>
+                    <div className={`w-16 h-16 rounded-2xl ${r.bg} flex items-center justify-center flex-shrink-0`} aria-hidden="true">
+                      <IconComp size={32} color={r.iconColor} />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-xl font-bold text-slate-800 block">{r.label}</span>
+                      <span className="text-sm text-slate-500">{r.desc}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Volunteer App ───
+
+    function VolunteerApp({ state, dispatch, announce }) {
+      const [view, setView] = useState('list'); // list | collection | receipt
+      const [selectedProp, setSelectedProp] = useState(null);
+      const [selectedWard, setSelectedWard] = useState(state.currentVolunteer?.ward || 14);
+      const [filterStatus, setFilterStatus] = useState('all');
+      const [collectionData, setCollectionData] = useState(null);
+      const [showReceipt, setShowReceipt] = useState(null);
+      const [capturingPhoto, setCapturingPhoto] = useState(false);
+      const [gettingLocation, setGettingLocation] = useState(false);
+      const [editingCollection, setEditingCollection] = useState(null);
+      const videoRef = useRef(null);
+      const canvasRef = useRef(null);
+      const collectionPanelRef = useRef(null);
+      const receiptPanelRef = useRef(null);
+
+      const wards = [...new Set(state.properties.map(p => p.ward))].sort();
+      const filteredProps = state.properties.filter(p =>
+        p.ward === selectedWard && (filterStatus === 'all' || p.status === filterStatus)
+      ).sort((a, b) => a.houseNo.localeCompare(b.houseNo));
+
+      const total = filteredProps.length;
+      const collected = filteredProps.filter(p => p.status === 'collected').length;
+      const missed = filteredProps.filter(p => p.status === 'missed').length;
+      const pending = filteredProps.filter(p => p.status === 'pending').length;
+
+      // Focus management - moved to App level via announce/lifecycle
+
+      // Preserve draft when navigating back
+      const draftRef = useRef(null);
+
+      const handleCollect = (prop) => {
+        setSelectedProp(prop);
+        // Check if there's a saved draft
+        const saved = draftRef.current;
+        const existing = state.collections.find(c => c.propertyId === prop.id);
+        if (existing) {
+          setEditingCollection(existing);
+          setCollectionData({
+            wasteTypes: existing.wasteTypes || [],
+            paymentCollected: existing.paymentCollected,
+            photo: existing.photo || null,
+            location: existing.location || null,
+          });
+        } else if (saved && saved.propertyId === prop.id) {
+          setEditingCollection(null);
+          setCollectionData(saved.data);
+        } else {
+          setEditingCollection(null);
+          setCollectionData({
+            wasteTypes: [],
+            paymentCollected: prop.paymentStatus !== 'paid',
+            photo: null,
+            location: null,
+          });
+        }
+        setView('collection');
+      };
+
+      const handleCapturePhoto = async () => {
+        setCapturingPhoto(true);
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          if (videoRef.current) videoRef.current.srcObject = stream;
+        } catch(e) {
+          announce('ക്യാമറ ആക്സസ് നിഷേധിക്കപ്പെട്ടു. ക്യാമറ അനുമതി നൽകുക.');
+          setCapturingPhoto(false);
+        }
+      };
+
+      const captureFrame = () => {
+        if (videoRef.current && canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          canvasRef.current.width = videoRef.current.videoWidth;
+          canvasRef.current.height = videoRef.current.videoHeight;
+          ctx.drawImage(videoRef.current, 0, 0);
+          const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.7);
+          setCollectionData(prev => ({ ...prev, photo: dataUrl }));
+          videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+          setCapturingPhoto(false);
+          announce('ഫോട്ടോ എടുത്തു');
+        }
+      };
+
+      const handleGetLocation = () => {
+        setGettingLocation(true);
+        if (!navigator.geolocation) {
+          announce('ഈ ബ്രൗസറിൽ ജിയോലൊക്കേഷൻ ലഭ്യമല്ല.');
+          setGettingLocation(false);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setCollectionData(prev => ({
+              ...prev,
+              location: { lat: pos.coords.latitude, lng: pos.coords.longitude }
+            }));
+            setGettingLocation(false);
+            announce('GPS ലൊക്കേഷൻ രേഖപ്പെടുത്തി');
+          },
+          () => { announce('ലൊക്കേഷൻ ലഭ്യമല്ല. GPS പ്രവർത്തനക്ഷമമാക്കുക.'); setGettingLocation(false); },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      };
+
+      const submitCollection = () => {
+        if (!selectedProp) return;
+        const fee = selectedProp.fee || 50;
+        if (editingCollection) {
+          dispatch({
+            type: 'UPDATE_COLLECTION',
+            payload: {
+              collectionId: editingCollection.id,
+              propertyId: selectedProp.id,
+              wasteTypes: collectionData.wasteTypes.length ? collectionData.wasteTypes : ['mixed'],
+              paymentCollected: collectionData.paymentCollected,
+              fee,
+              photo: collectionData.photo,
+              location: collectionData.location,
+            }
+          });
+          setEditingCollection(null);
+          setView('list');
+          announce(`${selectedProp.houseNo} വിവരങ്ങൾ അപ്ഡേറ്റ് ചെയ്തു`);
+          return;
+        }
+        dispatch({
+          type: 'COLLECT',
+          payload: {
+            propertyId: selectedProp.id,
+            volunteerId: state.currentVolunteer?.id || 'w1',
+            photo: collectionData.photo,
+            location: collectionData.location,
+            wasteTypes: collectionData.wasteTypes.length ? collectionData.wasteTypes : ['mixed'],
+            paymentCollected: collectionData.paymentCollected,
+            fee,
+          }
+        });
+        const receipt = {
+          ...selectedProp,
+          fee,
+          date: new Date().toLocaleDateString('en-IN'),
+          time: new Date().toLocaleTimeString('en-IN'),
+          receiptNo: `RCP-${String(Date.now()).slice(-6)}`,
+          paid: collectionData.paymentCollected,
+        };
+        setShowReceipt(receipt);
+        setView('receipt');
+        announce(`${selectedProp.houseNo} ശേഖരണം പൂർത്തിയായി${collectionData.paymentCollected ? ' ഫീസും ശേഖരിച്ചു' : ''}`);
+      };
+
+      if (view === 'receipt' && showReceipt) {
+        return (
+          <ReceiptView
+            ref={receiptPanelRef}
+            receipt={showReceipt}
+            onDone={() => { setShowReceipt(null); setView('list'); setSelectedProp(null); announce('വീടുകളുടെ പട്ടികയിലേക്ക് തിരികെ'); }}
+          />
+        );
+      }
+
+      if (view === 'collection' && selectedProp) {
+        return (
+          <div ref={collectionPanelRef} className="max-w-md mx-auto space-y-5" role="region" aria-label={`${selectedProp.houseNo} ശേഖരണ ഫോം`}>
+            <button onClick={() => { if (collectionData) draftRef.current = { propertyId: selectedProp.id, data: collectionData }; setView('list'); announce('ശേഖരണം മാറ്റിവച്ചു'); }} aria-label="വീടുകളുടെ പട്ടികയിലേക്ക്" className="flex items-center gap-1 text-slate-600 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded p-2 min-h-[44px]">
+              <Icons.ArrowLeft size={20} aria-hidden="true"/> പട്ടികയിലേക്ക് തിരികെ
+            </button>
+            <div className="bg-white rounded-2xl p-6 border shadow-sm">
+              <h2 className="font-bold text-2xl">{selectedProp.houseNo}</h2>
+              <p className="text-lg text-slate-600 mt-1">{selectedProp.resident}</p>
+              <p className="text-sm text-slate-400">വാർഡ് {selectedProp.ward}</p>
+            </div>
+
+            {/* Waste Type Selection */}
+            <fieldset className="bg-white rounded-2xl p-6 border shadow-sm">
+              <legend className="font-bold mb-4 text-lg">ഇന്ന് ശേഖരിച്ച മാലിന്യം</legend>
+              <div className="grid grid-cols-2 gap-3" role="group" aria-label="മാലിന്യ തരങ്ങൾ">
+                {[
+                  { id: 'plastic', label: 'പ്ലാസ്റ്റിക്', icon: '\u{1F4E6}', sel: 'ring-2 ring-yellow-500 bg-yellow-50 border-yellow-400 text-yellow-800', unsel: 'border-slate-200 text-slate-700 hover:border-yellow-400 hover:bg-yellow-50/50' },
+                  { id: 'glass', label: 'ഗ്ലാസ്', icon: '\u{1F453}', sel: 'ring-2 ring-blue-500 bg-blue-50 border-blue-400 text-blue-800', unsel: 'border-slate-200 text-slate-700 hover:border-blue-400 hover:bg-blue-50/50' },
+                  { id: 'paper', label: 'പേപ്പർ', icon: '\u{1F4C4}', sel: 'ring-2 ring-orange-500 bg-orange-50 border-orange-400 text-orange-800', unsel: 'border-slate-200 text-slate-700 hover:border-orange-400 hover:bg-orange-50/50' },
+                  { id: 'metal', label: 'ലോഹം', icon: '\u{2699}\u{FE0F}', sel: 'ring-2 ring-slate-500 bg-slate-50 border-slate-400 text-slate-800', unsel: 'border-slate-200 text-slate-700 hover:border-slate-400 hover:bg-slate-50/50' },
+                  { id: 'ewaste', label: 'ഇ-മാലിന്യം', icon: '\u{1F50C}', sel: 'ring-2 ring-red-500 bg-red-50 border-red-400 text-red-800', unsel: 'border-slate-200 text-slate-700 hover:border-red-400 hover:bg-red-50/50' },
+                  { id: 'mixed', label: 'സമ്മിശ്ര മാലിന്യം', icon: '\u{267B}\u{FE0F}', sel: 'ring-2 ring-emerald-500 bg-emerald-50 border-emerald-400 text-emerald-800', unsel: 'border-slate-200 text-slate-700 hover:border-emerald-400 hover:bg-emerald-50/50' },
+                ].map(wt => {
+                  const selected = collectionData.wasteTypes.includes(wt.id);
+                  return (
+                    <button key={wt.id} role="checkbox" aria-checked={selected} type="button"
+                      onClick={() => {
+                        const next = selected
+                          ? collectionData.wasteTypes.filter(x => x !== wt.id)
+                          : [...collectionData.wasteTypes, wt.id];
+                        setCollectionData(prev => ({ ...prev, wasteTypes: next }));
+                      }}
+                      className={`flex flex-col items-center gap-2 min-h-[80px] p-4 rounded-xl border-2 text-sm font-medium transition focus:outline-none focus:ring-4 focus:ring-emerald-300 ${
+                        selected ? wt.sel : wt.unsel
+                      }`}>
+                        <span className="text-2xl leading-none" aria-hidden="true">{wt.icon}</span>
+                        <span>{wt.label}</span>
+                        {selected && <span className="text-xs text-emerald-700 font-bold" aria-hidden="true">{'\u2713'} തിരഞ്ഞെടുത്തു</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              {collectionData.wasteTypes.length === 0 && <p className="text-sm text-red-500 mt-2" role="alert">ഒരെങ്കിലും തരം തിരഞ്ഞെടുക്കുക</p>}
+            </fieldset>
+
+            {/* Photo Capture */}
+            <div className="bg-white rounded-2xl p-6 border shadow-sm">
+              <h3 className="font-bold text-lg mb-3">ഫോട്ടോ തെളിവ്</h3>
+              {capturingPhoto ? (
+                <div className="space-y-3">
+                  <video ref={videoRef} autoPlay playsInline className="w-full rounded-xl bg-black" aria-label="ക്യാമറ പ്രിവ്യൂ" />
+                  <canvas ref={canvasRef} className="hidden" />
+                  <div className="flex gap-3">
+                    <button onClick={captureFrame} aria-label="ഫോട്ടോ എടുക്കുക" className="flex-1 bg-emerald-600 text-white min-h-[52px] rounded-xl text-base font-bold focus:outline-none focus:ring-4 focus:ring-emerald-300"><Icons.Camera size={20} aria-hidden="true"/> ഫോട്ടോ എടുക്കുക</button>
+                    <button onClick={() => { videoRef.current?.srcObject?.getTracks().forEach(t => t.stop()); setCapturingPhoto(false); }} aria-label="ഫോട്ടോ റദ്ദാക്കുക" className="px-6 min-h-[52px] border-2 rounded-xl text-base focus:outline-none focus:ring-4 focus:ring-slate-300">റദ്ദാക്കുക</button>
+                  </div>
+                </div>
+              ) : collectionData.photo ? (
+                <div className="space-y-3">
+                  <img src={collectionData.photo} alt="ശേഖരണ തെളിവ് ഫോട്ടോ" className="w-full rounded-xl" />
+                  <button onClick={() => setCollectionData(prev => ({ ...prev, photo: null }))} className="text-base text-red-600 font-medium min-h-[44px] px-4 focus:outline-none focus:ring-2 focus:ring-red-400 rounded-lg">വീണ്ടും ഫോട്ടോ എടുക്കുക</button>
+                </div>
+              ) : (
+                <button onClick={handleCapturePhoto} aria-label="ഫോട്ടോ എടുക്കാൻ ക്യാമറ തുറക്കുക" className="w-full border-2 border-dashed border-slate-300 rounded-xl min-h-[100px] flex flex-col items-center justify-center gap-2 text-slate-500 hover:border-emerald-400 transition focus:outline-none focus:ring-4 focus:ring-emerald-300">
+                  <Icons.Camera size={36} aria-hidden="true" />
+                  <span className="text-base font-medium">ഫോട്ടോ എടുക്കാൻ ടാപ്പ് ചെയ്യുക</span>
+                </button>
+              )}
+            </div>
+
+            {/* Location */}
+            <div className="bg-white rounded-2xl p-6 border shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg">GPS ലൊക്കേഷൻ</h3>
+                  {collectionData.location ? (
+                    <p className="text-sm text-emerald-700 mt-1">
+                      <Icons.MapPin size={14} aria-hidden="true"/> ലൊക്കേഷൻ രേഖപ്പെടുത്തി
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-400 mt-1">ഇതുവരെ രേഖപ്പെടുത്തിയിട്ടില്ല</p>
+                  )}
+                </div>
+                <button onClick={handleGetLocation} disabled={gettingLocation}
+                  aria-label={collectionData.location ? 'ലൊക്കേഷൻ രേഖപ്പെടുത്തി' : 'ലൊക്കേഷൻ എടുക്കുക'}
+                  className={`min-h-[52px] px-5 rounded-xl text-base font-bold focus:outline-none focus:ring-4 focus:ring-emerald-300 ${
+                    collectionData.location ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300' : 'bg-slate-100 text-slate-700 border-2 border-slate-200'
+                  }`}>
+                  {gettingLocation ? 'എടുക്കുന്നു...' : collectionData.location ? 'രേഖപ്പെടുത്തി' : 'ലൊക്കേഷൻ എടുക്കുക'}
+                </button>
+              </div>
+            </div>
+
+            {/* Payment */}
+            <div className="bg-white rounded-2xl p-6 border shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icons.CreditCard size={20} className="text-emerald-600" aria-hidden="true"/>
+                  <div>
+                    <h3 className="font-bold text-lg" id="fee-label">ഫീസ് ശേഖരിക്കുക</h3>
+                    <p className="text-sm text-slate-600 mt-1">പ്രതിമാസ ഫീസ്: ₹{selectedProp.fee || 50}</p>
+                  </div>
+                </div>
+                <button role="switch" aria-checked={collectionData.paymentCollected}
+                  aria-labelledby="fee-label"
+                  onClick={() => setCollectionData(prev => ({ ...prev, paymentCollected: !prev.paymentCollected }))}
+                  className={`min-h-[44px] px-5 rounded-xl text-base font-bold transition focus:outline-none focus:ring-4 focus:ring-emerald-300 flex items-center gap-2 ${
+                    collectionData.paymentCollected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 border-2 border-slate-200'
+                  }`}>
+                  {collectionData.paymentCollected ? '✅ ഉണ്ട്' : '❌ ഇല്ല'}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit */}
+              <button onClick={submitCollection}
+              disabled={collectionData.wasteTypes.length === 0}
+              aria-label={editingCollection ? `${selectedProp.houseNo} വിവരങ്ങൾ അപ്ഡേറ്റ് ചെയ്യുക` : (collectionData.paymentCollected ? `${selectedProp.houseNo} മാലിന്യവും ഫീസും ശേഖരിക്കുക` : `${selectedProp.houseNo} ശേഖരണം രേഖപ്പെടുത്തുക`)}
+              className="w-full bg-emerald-600 text-white min-h-[60px] rounded-2xl font-bold text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-[0.98] transition-transform flex items-center justify-center gap-3">
+              {editingCollection ? <><Icons.Check size={24} aria-hidden="true"/> വിവരങ്ങൾ അപ്ഡേറ്റ് ചെയ്യുക</> : (collectionData.paymentCollected ? 'ശേഖരിച്ച് പൂർത്തിയാക്കുക' : <>✅ ശേഖരണം രേഖപ്പെടുത്തുക</>)}
+            </button>
+          </div>
+        );
+      }
+
+      // Main list view
+      return (
+        <section className="max-w-md mx-auto space-y-4" aria-label="വീടുകളുടെ ശേഖരണ പട്ടിക">
+          {/* Quick Stats */}
+          <section aria-label="ശേഖരണ സ്ഥിതിവിവരം">
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: '⏳ തീർപ്പാക്കിയിട്ടില്ല', count: pending, color: 'text-amber-700', bg: 'bg-amber-50' },
+                  { label: '✅ ശേഖരിച്ചു', count: collected, color: 'text-emerald-700', bg: 'bg-emerald-50' },
+                  { label: '❌ ഒഴിവായി', count: missed, color: 'text-red-700', bg: 'bg-red-50' },
+                ].map(s => (
+                <div key={s.label} className={`${s.bg} rounded-xl p-4 text-center border border-slate-100`}>
+                  <span className={`text-2xl font-bold ${s.color}`}>{s.count}</span>
+                  <p className="text-sm text-slate-600 mt-1">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Ward Tabs */}
+          <nav aria-label="വാർഡ് തിരഞ്ഞെടുക്കുക">
+            <div className="flex gap-2 bg-slate-100 rounded-xl p-1.5" role="tablist" aria-label="വാർഡ് തിരഞ്ഞെടുക്കുക">
+              {wards.map(w => (
+                <button key={w} role="tab" aria-selected={selectedWard === w} onClick={() => setSelectedWard(w)}
+                  className={`flex-1 min-h-[48px] rounded-lg text-base font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                    selectedWard === w ? 'bg-white shadow text-emerald-700 font-bold' : 'text-slate-600'
+                  }`}>
+                  വാർഡ് {w}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Filter */}
+          <div className="flex gap-2" role="group" aria-label="സ്റ്റാറ്റസ് അനുസരിച്ച് ഫിൽറ്റർ ചെയ്യുക">
+            {['all','pending','collected','missed'].map(f => (
+              <button key={f} onClick={() => setFilterStatus(f)}
+                aria-pressed={filterStatus === f}
+                className={`flex-1 min-h-[44px] rounded-xl text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                  filterStatus === f ? 'bg-emerald-600 text-white shadow' : 'bg-white border-2 border-slate-200 text-slate-600'
+                }`}>
+                {f === 'all' ? 'എല്ലാം' : f === 'pending' ? '⏳ തീർപ്പാക്കിയിട്ടില്ല' : f === 'collected' ? '✅ ശേഖരിച്ചു' : '❌ ഒഴിവായി'}
+              </button>
+            ))}
+          </div>
+
+          {/* Progress Bar */}
+          <div className="bg-white rounded-xl p-4 border-2 border-slate-100" role="progressbar" aria-valuenow={total > 0 ? Math.round((collected/total)*100) : 0} aria-valuemin={0} aria-valuemax={100} aria-label={`റൂട്ട് പുരോഗതി: ${total > 0 ? Math.round((collected/total)*100) : 0} ശതമാനം`}>
+            <div className="flex justify-between text-sm text-slate-600 mb-2">
+              <span className="font-medium">📊 റൂട്ട് പുരോഗതി ({total} വീടുകൾ)</span>
+              <span className="font-bold">{total > 0 ? Math.round((collected/total)*100) : 0}%</span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-4">
+              <div className="bg-emerald-500 h-4 rounded-full transition-all" style={{width: `${total > 0 ? (collected/total)*100 : 0}%`}}></div>
+            </div>
+          </div>
+
+          {/* House List */}
+          <section aria-label="വീടുകളുടെ പട്ടിക">
+            <div className="space-y-2" role="list">
+              {filteredProps.map((p, idx) => {
+                const statusColors = { pending: 'border-l-amber-400', collected: 'border-l-emerald-500', missed: 'border-l-red-400' };
+                const isInteractive = p.status !== 'collected';
+                return (
+                  <div key={p.id} role="listitem"
+                    onClick={() => handleCollect(p)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCollect(p); } }}
+                    tabIndex={0}
+                    aria-label={`${p.houseNo}, ${p.resident}${p.paymentStatus === 'paid' ? ', അടച്ചു' : ''}`}
+                    className={`bg-white rounded-xl border-l-4 ${statusColors[p.status]||'border-l-slate-200'} border-2 border-slate-100 p-4 flex justify-between items-center shadow-sm cursor-pointer hover:shadow-md hover:border-slate-200 transition focus:outline-none focus:ring-4 focus:ring-emerald-300`}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-slate-400 font-mono w-7" aria-hidden="true">{idx+1}.</span>
+                      <div>
+                        <span className="text-lg font-bold text-slate-800">{p.houseNo}</span>
+                        <p className="text-base text-slate-500">{p.resident}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {p.paymentStatus === 'paid' && <span className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-lg font-bold border border-blue-200">അടച്ചു</span>}
+                      {p.status === 'collected' && <span className="flex items-center gap-1 text-emerald-700 font-bold"><Icons.CheckCircle size={22} color="#059669" aria-label="ശേഖരിച്ചു" /> തിരുത്തുക</span>}
+                      {p.status === 'missed' && <span className="flex items-center gap-1 text-red-700 font-bold"><Icons.AlertCircle size={22} color="#dc2626" aria-label="ഒഴിവായി" /> ഒഴിവായി</span>}
+                      {p.status === 'pending' && <Icons.ChevronRight size={24} color="#94a3b8" aria-hidden="true" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </section>
+      );
+    }
+
+    // ─── Receipt View ───
+    const ReceiptView = React.forwardRef(({ receipt, onDone }, ref) => {
+      return (
+        <div ref={ref} className="max-w-md mx-auto" role="region" aria-label="ശേഖരണ രസീത്" tabIndex={-1}>
+          <div className="bg-white rounded-2xl p-8 border-2 shadow-sm">
+            <div className="text-center border-b pb-5 mb-5">
+              <Icons.Recycle size={36} color="#059669" className="mx-auto mb-2" aria-hidden="true" />
+              <h2 className="font-bold text-2xl">ഹരിതസ്ട്രീം</h2>
+              <p className="text-base text-slate-500">മാലിന്യ ശേഖരണ രസീത്</p>
+            </div>
+            <div className="space-y-3 text-base">
+              <div className="flex justify-between py-1"><span className="text-slate-500">രസീത് നമ്പർ</span><span className="font-mono font-bold text-lg">{receipt.receiptNo}</span></div>
+              <div className="flex justify-between py-1"><span className="text-slate-500">വീട്</span><span className="font-bold text-lg">{receipt.houseNo}</span></div>
+              <div className="flex justify-between py-1"><span className="text-slate-500">താമസക്കാരൻ</span><span className="font-bold">{receipt.resident}</span></div>
+              <div className="flex justify-between py-1"><span className="text-slate-500">വാർഡ്</span><span className="font-bold">{receipt.ward}</span></div>
+              <div className="flex justify-between py-1"><span className="text-slate-500">തീയതി</span><span className="font-bold">{receipt.date}</span></div>
+              <div className="flex justify-between py-1"><span className="text-slate-500">സമയം</span><span className="font-bold">{receipt.time}</span></div>
+              {receipt.paid && (
+                <div className="border-t pt-4 mt-3">
+                  <div className="flex justify-between text-xl">
+                    <span className="font-bold">ഫീസ് ശേഖരിച്ചു</span>
+                    <span className="font-bold text-emerald-700">₹{receipt.fee}</span>
+                  </div>
+                  <p className="text-base text-emerald-700 mt-2 flex items-center gap-1 font-medium">
+                    <Icons.CheckCircle size={18} aria-hidden="true"/> പേയ്മെന്റ് ലഭിച്ചു
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          <button onClick={onDone} className="w-full mt-5 bg-emerald-600 text-white min-h-[60px] rounded-2xl font-bold text-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-[0.98] transition-transform">
+            ശേഖരണം തുടരുക
+          </button>
+        </div>
+      );
+    });
+
+    // ─── Admin Dashboard ───
+
+    function AdminDashboard({ state, dispatch }) {
+      const [tab, setTab] = useState('overview'); // overview | wards | workers | collections | analytics
+      const [editingProp, setEditingProp] = useState(null);
+      const [editForm, setEditForm] = useState({});
+      const { properties, collections, payments, workers, pickupRequests } = state;
+
+      const totalHouses = properties.length;
+      const totalCollected = properties.filter(p => p.status === 'collected').length;
+      const totalMissed = properties.filter(p => p.status === 'missed').length;
+      const totalPaid = properties.filter(p => p.paymentStatus === 'paid').length;
+      const collectionRate = totalHouses > 0 ? Math.round((totalCollected / totalHouses) * 100) : 0;
+      const totalRevenue = totalPaid * 50;
+
+      const wardStats = useMemo(() => {
+        const wards = [...new Set(properties.map(p => p.ward))];
+        return wards.map(w => {
+          const props = properties.filter(p => p.ward === w);
+          const collected = props.filter(p => p.status === 'collected').length;
+          const missed = props.filter(p => p.status === 'missed').length;
+          const paid = props.filter(p => p.paymentStatus === 'paid').length;
+          const worker = workers.find(wk => wk.ward === w);
+          return { ward: w, total: props.length, collected, missed, paid, collectionRate: props.length > 0 ? Math.round((collected/props.length)*100) : 0, workerName: worker?.name || 'Unassigned' };
+        });
+      }, [properties, workers]);
+
+      const wasteCategories = useMemo(() => {
+        const counts = {};
+        collections.forEach(c => {
+          (c.wasteTypes || ['mixed']).forEach(wt => { counts[wt] = (counts[wt] || 0) + 1; });
+        });
+        return Object.entries(counts).sort((a,b) => b[1] - a[1]);
+      }, [collections]);
+
+      const tabNav = [
+        { id: 'overview', label: 'അവലോകനം', icon: 'BarChart3' },
+        { id: 'wards', label: 'വാർഡുകൾ', icon: 'Map' },
+        { id: 'workers', label: 'പ്രവർത്തകർ', icon: 'Users' },
+        { id: 'collections', label: 'രേഖകൾ', icon: 'Clock' },
+        { id: 'analytics', label: 'അനലിറ്റിക്സ്', icon: 'TrendingUp' },
+      ];
+
+      return (
+        <section className="max-w-4xl mx-auto space-y-5" aria-label="അഡ്മിൻ ഡാഷ്ബോർഡ്">
+          {/* Tab nav */}
+          <nav aria-label="ഡാഷ്ബോർഡ് വിഭാഗം">
+            <div className="flex gap-2 bg-slate-100 rounded-xl p-1.5 overflow-x-auto" role="tablist" aria-label="ഡാഷ്ബോർഡ് ടാബുകൾ">
+              {tabNav.map(t => {
+                const IconComp = Icons[t.icon];
+                return (
+                  <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
+                    className={`flex items-center gap-2 px-4 min-h-[48px] rounded-lg text-base font-medium whitespace-nowrap transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                      tab === t.id ? 'bg-white shadow text-emerald-700 font-bold' : 'text-slate-600'
+                    }`}>
+                    <IconComp size={18} aria-hidden="true"/> {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+          {tab === 'overview' && (
+            <section aria-label="അവലോകനം" role="tabpanel" className="space-y-5">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'ശേഖരണ നിരക്ക്', value: `${collectionRate}%`, color: 'text-emerald-700', bg: 'bg-emerald-50', icon: 'CheckCircle' },
+                  { label: 'ആകെ ശേഖരിച്ചത്', value: totalCollected, color: 'text-blue-700', bg: 'bg-blue-50', icon: 'Trash2' },
+                  { label: 'ഒഴിവായ വീടുകൾ', value: totalMissed, color: 'text-red-700', bg: 'bg-red-50', icon: 'AlertCircle' },
+                  { label: 'വരുമാനം', value: `\u20B9${totalRevenue}`, color: 'text-violet-700', bg: 'bg-violet-50', icon: 'CreditCard' },
+                ].map(s => {
+                  const IconComp = Icons[s.icon];
+                  return (
+                    <div key={s.label} className={`${s.bg} rounded-2xl p-5 border-2 border-slate-100`}>
+                      <IconComp size={24} color={s.color.includes('text-') ? undefined : s.color} className="mb-3" aria-hidden="true" />
+                      <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
+                      <p className="text-sm text-slate-600 mt-1">{s.label}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-4">ശേഖരണ പുരോഗതി</h2>
+                <div className="flex items-center gap-6">
+                  <div className="relative w-28 h-28" role="progressbar" aria-valuenow={collectionRate} aria-valuemin={0} aria-valuemax={100} aria-label={`${collectionRate}% ശേഖരണ നിരക്ക്`}>
+                    <svg className="w-28 h-28 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
+                      <circle cx="18" cy="18" r="16" fill="none" stroke="#e2e8f0" strokeWidth="3"/>
+                      <circle cx="18" cy="18" r="16" fill="none" stroke="#10b981" strokeWidth="3"
+                        strokeDasharray={`${collectionRate} ${100 - collectionRate}`}
+                        strokeLinecap="round"/>
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-emerald-700">{collectionRate}%</span>
+                  </div>
+                  <div className="space-y-2 text-base">
+                    <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-emerald-500" aria-hidden="true"></div> ശേഖരിച്ചു: <span className="font-bold">{totalCollected}</span></div>
+                    <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-amber-400" aria-hidden="true"></div> തീർപ്പാക്കിയിട്ടില്ല: <span className="font-bold">{totalHouses - totalCollected - totalMissed}</span></div>
+                    <div className="flex items-center gap-3"><div className="w-4 h-4 rounded-full bg-red-400" aria-hidden="true"></div> ഒഴിവായി: <span className="font-bold">{totalMissed}</span></div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-4">സമീപകാല ശേഖരണങ്ങൾ</h2>
+                <div role="list" className="space-y-1">
+                  {collections.slice(0, 10).map(c => {
+                    const prop = properties.find(p => p.id === c.propertyId);
+                    return (
+                      <div key={c.id} className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0 text-base" role="listitem">
+                        <div>
+                          <span className="font-bold text-slate-800">{prop?.houseNo || 'അജ്ഞാതം'}</span>
+                          <span className="text-slate-500 ml-2">{prop?.resident}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {c.paymentCollected && <span className="text-sm bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg font-bold border border-emerald-200">{'\u20B9'}{c.fee}</span>}
+                          <span className="text-sm text-slate-500">{formatTime(c.timestamp)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {collections.length === 0 && <p className="text-slate-400 text-base text-center py-6">ഇതുവരെ ശേഖരണങ്ങളില്ല</p>}
+              </div>
+            </section>
+          )}
+
+          {tab === 'wards' && (
+            <section aria-label="വാർഡ് പ്രകടനം" role="tabpanel">
+              <div className="grid gap-4">
+                {wardStats.map(w => (
+                  <div key={w.ward} className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h2 className="font-bold text-xl">വാർഡ് {w.ward}</h2>
+                        <p className="text-base text-slate-500 mt-1">പ്രവർത്തകൻ: {w.workerName}</p>
+                      </div>
+                      <span className={`text-2xl font-bold ${
+                        w.collectionRate >= 80 ? 'text-emerald-700' : w.collectionRate >= 50 ? 'text-amber-700' : 'text-red-700'
+                      }`} aria-label={`${w.collectionRate} ശതമാനം ശേഖരണ നിരക്ക്`}>{w.collectionRate}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-4 mb-4" role="progressbar" aria-valuenow={w.collectionRate} aria-valuemin={0} aria-valuemax={100} aria-label={`വാർഡ് ${w.ward} ശേഖരണ പുരോഗതി`}>
+                      <div className={`h-4 rounded-full ${
+                        w.collectionRate >= 80 ? 'bg-emerald-500' : w.collectionRate >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                      }`} style={{width: `${w.collectionRate}%`}}></div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 text-center text-base">
+                      <div className="bg-slate-50 rounded-xl p-3"><span className="font-bold text-2xl text-emerald-700">{w.collected}</span><span className="text-slate-400 text-lg"> / {w.total}</span><p className="text-slate-500 text-sm mt-1">ശേഖരിച്ചു</p></div>
+                      <div className="bg-slate-50 rounded-xl p-3"><span className="font-bold text-2xl text-red-700">{w.missed}</span><p className="text-slate-500 text-sm mt-1">ഒഴിവായി</p></div>
+                      <div className="bg-slate-50 rounded-xl p-3"><span className="font-bold text-2xl text-blue-700">{w.paid}</span><p className="text-slate-500 text-sm mt-1">അടച്ചു</p></div>
+                    </div>
+                    {/* House list for this ward */}
+                    <details className="mt-4 group">
+                      <summary className="text-base font-bold text-emerald-700 cursor-pointer min-h-[44px] flex items-center select-none focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded-lg px-2 -mx-2" aria-label={`വാർഡ് ${w.ward} വീടുകൾ കാണുക`}>
+                        <Icons.ChevronRight size={20} className="transition-transform group-open:rotate-90 mr-2" aria-hidden="true"/>
+                        വീടുകൾ കാണുക ({w.total})
+                      </summary>
+                      <div className="mt-3 space-y-2">
+                        {properties.filter(p => p.ward === w.ward).sort((a,b) => a.houseNo.localeCompare(b.houseNo)).map(p => (
+                          <div key={p.id} className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-100 hover:bg-slate-100 transition">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                p.status === 'collected' ? 'bg-emerald-100 text-emerald-700' :
+                                p.status === 'missed' ? 'bg-red-100 text-red-700' :
+                                'bg-amber-100 text-amber-700'
+                              }`} aria-hidden="true">
+                                {p.status === 'collected' ? '✅' : p.status === 'missed' ? '❌' : '⏳'}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Icons.Home size={14} className="text-slate-400 shrink-0" aria-hidden="true"/>
+                                  <span className="font-bold text-base truncate">{p.houseNo}</span>
+                                  <span className="text-slate-500 text-sm truncate">{p.resident}</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className={`text-xs px-2 py-0.5 rounded-lg font-medium inline-flex items-center gap-1 ${
+                                    p.paymentStatus === 'paid' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'
+                                  }`}>
+                                    {p.paymentStatus === 'paid' ? '💵 അടച്ചു' : '⏳ കുടിശ്ശിക'}
+                                  </span>
+                                  {p.status === 'collected' && <span className="text-xs text-emerald-600 font-medium">✅ ശേഖരിച്ചു</span>}
+                                  {p.status === 'missed' && <span className="text-xs text-red-600 font-medium">❌ ഒഴിവായി</span>}
+                                </div>
+                              </div>
+                            </div>
+                            <button onClick={() => { setEditingProp(p); setEditForm({ houseNo: p.houseNo, resident: p.resident, fee: p.fee || 50, status: p.status, paymentStatus: p.paymentStatus }); }}
+                              aria-label={`${p.houseNo} എഡിറ്റ് ചെയ്യുക`}
+                              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-white border-2 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700 transition focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                              <Icons.Edit size={18} aria-hidden="true"/>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {tab === 'workers' && (
+            <section aria-label="പ്രവർത്തക ഉൽപ്പാദനക്ഷമത" role="tabpanel">
+              <div className="space-y-4">
+                {workers.map(w => {
+                  const assignedProps = properties.filter(p => p.ward === w.ward);
+                  const collected = assignedProps.filter(p => p.status === 'collected').length;
+                  const rate = assignedProps.length > 0 ? Math.round((collected/assignedProps.length)*100) : 0;
+                  const todayCollections = collections.filter(c => c.volunteerId === w.id && c.date === today());
+                  return (
+                    <div key={w.id} className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h2 className="font-bold text-xl flex items-center gap-2">🧑‍🌾 {w.name}</h2>
+                          <p className="text-base text-slate-500 mt-1">വാർഡ് {w.ward} · {w.phone}</p>
+                        </div>
+                        <span className={`px-3 py-1.5 rounded-xl text-sm font-bold ${
+                          rate >= 80 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>📅 ഇന്ന്: {todayCollections.length}</span>
+                      </div>
+                      <div className="mt-4 grid grid-cols-3 gap-3 text-center text-base">
+                        <div className="bg-slate-50 rounded-xl p-4"><span className="font-bold block text-3xl">{rate}%</span><span className="text-slate-500">📊 ശേഖരണം</span></div>
+                        <div className="bg-slate-50 rounded-xl p-4"><span className="font-bold block text-3xl">{assignedProps.length}</span><span className="text-slate-500">🏠 നിയോഗിക്കപ്പെട്ടവ</span></div>
+                        <div className="bg-slate-50 rounded-xl p-4"><span className="font-bold block text-3xl">{assignedProps.filter(p => p.paymentStatus === 'paid').length}</span><span className="text-slate-500">💵 പേയ്മെന്റുകൾ</span></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {tab === 'collections' && (
+            <section aria-label="ശേഖരണ രേഖകൾ" role="tabpanel">
+              <div className="bg-white rounded-2xl border-2 shadow-sm overflow-hidden">
+                <div className="p-5 border-b border-slate-100 font-bold text-xl flex justify-between items-center">
+                  <span>ശേഖരണ രേഖ</span>
+                  <span className="text-base font-normal text-slate-500">{collections.length} എൻട്രികൾ</span>
+                </div>
+                <div role="list">
+                  {collections.map(c => {
+                    const prop = properties.find(p => p.id === c.propertyId);
+                    const wasteStr = (c.wasteTypes || ['mixed']).join(', ');
+                    return (
+                      <div key={c.id} className="p-5 border-b border-slate-100 last:border-0 text-base" role="listitem">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Icons.Home size={14} className="text-slate-400" aria-hidden="true"/>
+                              <span className="font-bold text-slate-800">{prop?.houseNo || 'Unknown'}</span>
+                              <span className="text-slate-500">{prop?.resident}</span>
+                            </div>
+                            <p className="text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                              {(c.wasteTypes || ['mixed']).map(wt => {
+                                const icons = { plastic: '📦', glass: '🔍', paper: '📄', metal: '⚙️', ewaste: '🔌', mixed: '♻️' };
+                                return <span key={wt} className="inline-flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-lg">{icons[wt]||'♻️'} {wt}</span>;
+                              })}
+                              {c.paymentCollected && <span className="inline-flex items-center gap-1 text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-lg">💵 ₹{c.fee} ശേഖരിച്ചു</span>}
+                            </p>
+                          </div>
+                          <div className="text-right text-sm text-slate-400 space-y-1">
+                            <p className="font-medium text-slate-600">{formatTime(c.timestamp)}</p>
+                            {c.location && <p className="text-emerald-700 flex items-center gap-1 justify-end"><Icons.MapPin size={14} aria-hidden="true"/> GPS</p>}
+                            {c.photo && <p className="text-blue-700 flex items-center gap-1 justify-end"><Icons.Camera size={14} aria-hidden="true"/> Photo</p>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {collections.length === 0 && <p className="text-slate-400 text-center py-10 text-base">ഇതുവരെ ശേഖരണ രേഖകളില്ല</p>}
+              </div>
+            </section>
+          )}
+
+          {tab === 'analytics' && (
+            <section aria-label="അനലിറ്റിക്സ്" role="tabpanel" className="space-y-5">
+              {/* Waste category breakdown */}
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-4">മാലിന്യ വിഭാഗ വിഭജനം</h2>
+                <div className="space-y-3" role="list">
+                  {wasteCategories.length > 0 ? wasteCategories.map(([cat, count]) => {
+                    const max = wasteCategories[0]?.[1] || 1;
+                    const pct = Math.round((count / max) * 100);
+                    const labels = { plastic: '📦 പ്ലാസ്റ്റിക്', glass: '🔍 ഗ്ലാസ്', paper: '📄 പേപ്പർ', metal: '⚙️ ലോഹം', ewaste: '🔌 ഇ-മാലിന്യം', mixed: '♻️ സമ്മിശ്രം', organic: '🌿 ഓർഗാനിക്' };
+                    return (
+                      <div key={cat} role="listitem">
+                        <div className="flex justify-between text-base mb-2">
+                          <span className="font-medium">{labels[cat] || cat}</span>
+                          <span className="font-bold">{count}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-4" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${labels[cat]||cat} ${pct} percent`}>
+                          <div className="bg-emerald-500 h-4 rounded-full" style={{width: `${pct}%`}}></div>
+                        </div>
+                      </div>
+                    );
+                    }) : <p className="text-base text-slate-400">ഇതുവരെ ഡാറ്റയില്ല</p>}
+                </div>
+              </div>
+
+              {/* Payment trends */}
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-4">ഫീസ് ശേഖരണ സംഗ്രഹം</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 rounded-2xl p-5 text-center border border-blue-100">
+                    <span className="text-2xl block mb-1" aria-hidden="true">💰</span>
+                    <p className="text-3xl font-bold text-blue-700">{'\u20B9'}{totalRevenue}</p>
+                    <p className="text-base text-slate-600 mt-1">ആകെ ശേഖരിച്ചത്</p>
+                  </div>
+                  <div className="bg-violet-50 rounded-2xl p-5 text-center border border-violet-100">
+                    <span className="text-2xl block mb-1" aria-hidden="true">✅</span>
+                    <p className="text-3xl font-bold text-violet-700">{totalPaid}/{totalHouses}</p>
+                    <p className="text-base text-slate-600 mt-1">ഫീസ് അടച്ച വീടുകൾ</p>
+                  </div>
+                </div>
+                <div className="mt-4 text-base text-slate-600 space-y-1 bg-slate-50 rounded-xl p-4">
+                  <p>ശേഖരണ നിരക്ക്: <span className="font-bold">{collectionRate}%</span></p>
+                  <p>പേയ്മെന്റ് നിരക്ക്: <span className="font-bold">{totalHouses > 0 ? Math.round((totalPaid/totalHouses)*100) : 0}%</span></p>
+                  <p>കുടിശ്ശിക: <span className="font-bold text-red-700">{'\u20B9'}{(totalHouses - totalPaid) * 50}</span></p>
+                </div>
+              </div>
+
+              {/* Missed houses */}
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-4 flex items-center gap-2">
+                  <Icons.AlertCircle size={22} color="#dc2626" aria-hidden="true"/>
+                  ഒഴിവായ ശേഖരണങ്ങൾ
+                </h2>
+                <div role="list" className="space-y-1">
+                  {properties.filter(p => p.status === 'missed').map(p => (
+                    <div key={p.id} className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0 text-base" role="listitem">
+                      <span className="font-bold text-slate-800 flex items-center gap-2"><span aria-hidden="true">❌</span> {p.houseNo} {'\u2014'} {p.resident}</span>
+                      <span className="text-sm text-red-600 font-medium bg-red-50 px-3 py-1 rounded-lg">വാർഡ് {p.ward}</span>
+                    </div>
+                  ))}
+                </div>
+                {properties.filter(p => p.status === 'missed').length === 0 && <p className="text-base text-slate-400 text-center py-4">ഒഴിവായ ശേഖരണങ്ങളില്ല</p>}
+              </div>
+
+              {/* Special pickup requests */}
+              {pickupRequests.length > 0 && (
+                <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                  <h2 className="font-bold text-xl mb-4">പ്രത്യേക പിക്കപ്പ് അഭ്യർത്ഥനകൾ</h2>
+                  <div role="list" className="space-y-1">
+                    {pickupRequests.map(r => (
+                      <div key={r.id} className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0 text-base" role="listitem">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg" aria-hidden="true">{r.type === 'ewaste' ? '🔌' : r.type === 'bulk' ? '🪑' : r.type === 'hazardous' ? '☣️' : r.type === 'garden' ? '🌿' : '🚮'}</span>
+                          <div>
+                            <span className="font-bold text-slate-800">{r.houseNo}</span>
+                            <span className="text-slate-500 ml-2">{r.type}</span>
+                          </div>
+                        </div>
+                        <span className={`text-sm px-3 py-1 rounded-lg font-medium ${
+                          r.status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>{r.status === 'pending' ? '⏳ തീർപ്പാക്കിയിട്ടില്ല' : '✅ പൂർത്തിയായി'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* House edit modal */}
+          {editingProp && createPortal(
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setEditingProp(null)} role="dialog" aria-modal="true" aria-label="വീടിന്റെ വിവരങ്ങൾ തിരുത്തുക">
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-bold text-xl">{editingProp.houseNo} വിവരങ്ങൾ</h2>
+                  <button onClick={() => setEditingProp(null)} aria-label="അടയ്ക്കുക" className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    <Icons.X size={24} aria-hidden="true"/>
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.Tag size={16} className="text-emerald-600" aria-hidden="true"/> വീട് നമ്പർ</label>
+                    <div className="relative">
+                      <input type="text" value={editForm.houseNo || ''}
+                        onChange={e => setEditForm(f => ({...f, houseNo: e.target.value}))}
+                        className="w-full rounded-xl border-2 border-slate-200 p-4 pl-10 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"/>
+                      <Icons.Home size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"/>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.User size={16} className="text-emerald-600" aria-hidden="true"/> താമസക്കാരൻ</label>
+                    <div className="relative">
+                      <input type="text" value={editForm.resident || ''}
+                        onChange={e => setEditForm(f => ({...f, resident: e.target.value}))}
+                        className="w-full rounded-xl border-2 border-slate-200 p-4 pl-10 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"/>
+                      <Icons.User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"/>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.DollarSign size={16} className="text-emerald-600" aria-hidden="true"/> ഫീസ് (₹)</label>
+                    <div className="relative">
+                      <input type="number" min="0" value={editForm.fee || 0}
+                        onChange={e => setEditForm(f => ({...f, fee: parseInt(e.target.value) || 0}))}
+                        className="w-full rounded-xl border-2 border-slate-200 p-4 pl-10 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"/>
+                      <Icons.CreditCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"/>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.CheckCircle size={16} className="text-emerald-600" aria-hidden="true"/> ശേഖരണ സ്ഥിതി</label>
+                    <div className="relative">
+                      <select value={editForm.status || 'pending'}
+                        onChange={e => setEditForm(f => ({...f, status: e.target.value}))}
+                        className="w-full rounded-xl border-2 border-slate-200 p-4 pl-10 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 appearance-none">
+                        <option value="pending">⏳ തീർപ്പാക്കിയിട്ടില്ല</option>
+                        <option value="collected">✅ ശേഖരിച്ചു</option>
+                        <option value="missed">❌ ഒഴിവായി</option>
+                      </select>
+                      <Icons.Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true"/>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.CreditCard size={16} className="text-emerald-600" aria-hidden="true"/> പേയ്മെന്റ് സ്ഥിതി</label>
+                    <div className="relative">
+                      <select value={editForm.paymentStatus || 'pending'}
+                        onChange={e => setEditForm(f => ({...f, paymentStatus: e.target.value}))}
+                        className="w-full rounded-xl border-2 border-slate-200 p-4 pl-10 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 appearance-none">
+                        <option value="pending">⏳ കുടിശ്ശിക</option>
+                        <option value="paid">✅ അടച്ചു</option>
+                      </select>
+                      <Icons.CreditCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true"/>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setEditingProp(null)}
+                      className="flex-1 min-h-[52px] rounded-2xl border-2 border-slate-200 font-bold text-base hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-2">
+                      <Icons.X size={18} aria-hidden="true"/> റദ്ദാക്കുക
+                    </button>
+                    <button onClick={() => {
+                      dispatch({ type: 'UPDATE_PROPERTY', payload: { id: editingProp.id, ...editForm } });
+                      setEditingProp(null);
+                    }}
+                      className="flex-1 min-h-[52px] rounded-2xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 transition focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-2">
+                      <Icons.Check size={18} aria-hidden="true"/> സംരക്ഷിക്കുക
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+        </section>
+      );
+    }
+
+    // ─── Citizen Portal ───
+    function CitizenPortal({ state, dispatch, announce }) {
+      const [activeTab, setActiveTab] = useState('schedule');
+      const [selectedProp, setSelectedProp] = useState(
+        () => state.properties.find(p => p.houseNo === 'H-1000') || state.properties[0]
+      );
+      const [showPayConfirm, setShowPayConfirm] = useState(false);
+      const [pickupForm, setPickupForm] = useState({ type: '', note: '' });
+      const [showPickupForm, setShowPickupForm] = useState(false);
+
+      const myCollections = state.collections.filter(c => c.propertyId === selectedProp?.id);
+      const myPayments = state.payments.filter(p => p.propertyId === selectedProp?.id);
+      const myRequests = state.pickupRequests.filter(r => r.propertyId === selectedProp?.id);
+
+      if (!selectedProp) {
+        return (
+          <div className="max-w-md mx-auto bg-white p-8 rounded-2xl text-center" role="alert">
+            <Icons.AlertCircle size={40} color="#94a3b8" className="mx-auto mb-3" aria-hidden="true"/>
+            <p className="text-slate-500">No household data found</p>
+          </div>
+        );
+      }
+
+      const handlePay = () => {
+        dispatch({
+          type: 'COLLECT',
+          payload: {
+            propertyId: selectedProp.id,
+            volunteerId: 'self',
+            wasteTypes: ['mixed'],
+            paymentCollected: true,
+            fee: selectedProp.fee || 50,
+          }
+        });
+        setShowPayConfirm(false);
+        if (announce) announce(`${selectedProp.houseNo} ₹{selectedProp.fee || 50} പേയ്മെന്റ് പൂർത്തിയായി`);
+      };
+
+      const handlePickupRequest = () => {
+        if (!pickupForm.type) return;
+        dispatch({
+          type: 'ADD_PICKUP_REQUEST',
+          payload: {
+            propertyId: selectedProp.id,
+            houseNo: selectedProp.houseNo,
+            type: pickupForm.type,
+            note: pickupForm.note,
+            status: 'pending',
+          }
+        });
+        setPickupForm({ type: '', note: '' });
+        setShowPickupForm(false);
+        if (announce) announce('പ്രത്യേക പിക്കപ്പ് അഭ്യർത്ഥന സമർപ്പിച്ചു');
+      };
+
+      const tabs = [
+        { id: 'schedule', label: '📅 ഷെഡ്യൂൾ' },
+        { id: 'payments', label: '💵 പേയ്മെന്റുകൾ' },
+        { id: 'pickup', label: '🚛 പ്രത്യേക പിക്കപ്പ്' },
+      ];
+
+      return (
+        <section className="max-w-md mx-auto space-y-5" aria-label="താമസക്കാരന്റെ പോർട്ടൽ">
+          {/* Household info */}
+          <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center" aria-hidden="true">
+                <Icons.Users size={28} color="#059669" />
+              </div>
+              <div>
+                <h1 className="font-bold text-2xl">{selectedProp.houseNo}</h1>
+                <p className="text-base text-slate-500">{selectedProp.resident} · വാർഡ് {selectedProp.ward}</p>
+              </div>
+            </div>
+            <div className="bg-emerald-50 rounded-xl p-4 flex items-center justify-between border border-emerald-100">
+              <div className="flex items-center gap-3">
+                {selectedProp.paymentStatus === 'paid' ? <span className="text-2xl" aria-hidden="true">✅</span> : <span className="text-2xl" aria-hidden="true">⏳</span>}
+                <div>
+                  <p className="text-sm text-slate-500">സ്റ്റാറ്റസ്</p>
+                  <p className={`text-lg font-bold mt-1 ${selectedProp.paymentStatus === 'paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    {selectedProp.paymentStatus === 'paid' ? `${currentMonth()} അടച്ചു` : `${currentMonth()} തീർപ്പാക്കിയിട്ടില്ല`}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-slate-500">പ്രതിമാസ ഫീസ്</p>
+                <p className="text-xl font-bold mt-1">{'\u20B9'}{selectedProp.fee || 50}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab Bar */}
+          <nav aria-label="താമസക്കാരന്റെ പോർട്ടൽ വിഭാഗങ്ങൾ">
+            <div className="flex bg-slate-100 rounded-xl p-1.5 gap-1" role="tablist" aria-label="പോർട്ടൽ ടാബുകൾ">
+              {tabs.map(t => (
+                <button key={t.id} role="tab" aria-selected={activeTab === t.id} onClick={() => setActiveTab(t.id)}
+                  className={`flex-1 min-h-[48px] rounded-lg text-base font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                    activeTab === t.id ? 'bg-white shadow text-emerald-700 font-bold' : 'text-slate-600'
+                  }`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Schedule Tab */}
+          {activeTab === 'schedule' && (
+            <section aria-label="ശേഖരണ ഷെഡ്യൂൾ" role="tabpanel" className="space-y-4">
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-4 flex items-center gap-2">
+                  <Icons.Calendar size={20} aria-hidden="true"/> ശേഖരണ ഷെഡ്യൂൾ
+                </h2>
+                <div role="list" className="space-y-1">
+                  {[
+                    { day: 'തിങ്കൾ', type: 'അജൈവ മാലിന്യം', time: '9:00 AM - 11:00 AM', emoji: '🗑️' },
+                    { day: 'ബുധൻ', type: 'അജൈവ മാലിന്യം', time: '9:00 AM - 11:00 AM', emoji: '🗑️' },
+                    { day: 'വെള്ളി', type: 'അജൈവ മാലിന്യം', time: '9:00 AM - 11:00 AM', emoji: '🗑️' },
+                  ].map(s => (
+                    <div key={s.day} className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0 text-base" role="listitem">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl" aria-hidden="true">{s.emoji}</span>
+                        <div>
+                          <p className="font-bold text-slate-800">{s.day}</p>
+                          <p className="text-sm text-slate-500">{s.type}</p>
+                        </div>
+                      </div>
+                      <span className="text-sm text-slate-600 font-medium bg-slate-50 px-3 py-1 rounded-lg">{s.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-4">ശേഖരണ ചരിത്രം</h2>
+                {myCollections.length > 0 ? (
+                  <div role="list" className="space-y-1">
+                    {myCollections.slice(0, 5).map(c => {
+                      const d = new Date(c.timestamp);
+                      return (
+                        <div key={c.id} className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0 text-base" role="listitem">
+                          <div className="flex items-center gap-3">
+                            <Icons.CheckCircle size={20} color="#059669" aria-hidden="true"/>
+                            <div>
+                              <span className="font-medium">{d.toLocaleDateString('en-IN')}</span>
+                              <div className="flex items-center gap-1 text-sm text-slate-400 mt-0.5">
+                                {(c.wasteTypes || ['mixed']).map(wt => {
+                                  const icons = { plastic: '📦', glass: '🔍', paper: '📄', metal: '⚙️', ewaste: '🔌', mixed: '♻️' };
+                                  return <span key={wt}>{icons[wt]||'♻️'}</span>;
+                                })}
+                                {c.paymentCollected && <span className="ml-1">💵</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-sm text-slate-500">{formatTime(c.timestamp)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Icons.Clock size={40} color="#94a3b8" className="mx-auto mb-3" aria-hidden="true"/>
+                    <p className="text-base text-slate-400">ഈ മാസം ശേഖരണങ്ങളൊന്നുമില്ല</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Next pickup reminder */}
+              <div className="bg-amber-50 rounded-2xl p-5 border-2 border-amber-200" role="status" aria-live="polite">
+                <p className="text-base font-bold text-amber-800">
+                  <Icons.Clock size={18} className="inline mr-2" aria-hidden="true"/>
+                  അടുത്ത ശേഖരണം: {(() => {
+                    const days = ['ഞായർ','തിങ്കൾ','ചൊവ്വ','ബുധൻ','വ്യാഴം','വെള്ളി','ശനി'];
+                    const today = new Date().getDay();
+                    const nextDays = [1,3,5];
+                    const next = nextDays.find(d => d > today) || nextDays[0];
+                    const diff = next > today ? next - today : (7 - today + next);
+                    return `${days[next]} (${diff} ദിവസത്തിനുള്ളിൽ)`;
+                  })()}
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* Payments Tab */}
+          {activeTab === 'payments' && (
+            <section aria-label="പേയ്മെന്റുകൾ" role="tabpanel" className="space-y-4">
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-4">പ്രതിമാസ ഫീസ്</h2>
+                <div className="bg-slate-50 rounded-xl p-6 text-center mb-5 border border-slate-100">
+                  <p className="text-base text-slate-500">{currentMonth()} ഫീസ്</p>
+                  <p className="text-4xl font-bold text-slate-800 mt-2">{'\u20B9'}{selectedProp.fee || 50}</p>
+                </div>
+                {selectedProp.paymentStatus === 'paid' ? (
+                  <div className="bg-emerald-50 rounded-xl p-5 text-center border border-emerald-100">
+                    <Icons.CheckCircle size={32} color="#059669" className="mx-auto mb-2" aria-hidden="true"/>
+                    <p className="font-bold text-lg text-emerald-800">{currentMonth()} അടച്ചു</p>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowPayConfirm(true)}
+                    aria-label={`${currentMonth()} ₹{selectedProp.fee || 50} അടയ്ക്കുക`}
+                    className="w-full bg-emerald-600 text-white min-h-[60px] rounded-2xl font-bold text-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-[0.98] transition-transform flex items-center justify-center gap-3">
+                    💵 അടയ്ക്കുക {'\u20B9'}{selectedProp.fee || 50}
+                  </button>
+                )}
+              </div>
+
+              {showPayConfirm && createPortal(
+                <div className="fixed inset-0 bg-black/50 flex items-end p-5 z-50" role="dialog" aria-modal="true" aria-label="പേയ്മെന്റ് സ്ഥിരീകരിക്കുക">
+                  <div className="bg-white w-full rounded-2xl p-6 space-y-5 shadow-xl">
+                    <h2 className="font-bold text-xl flex items-center gap-2">💵 പേയ്മെന്റ് സ്ഥിരീകരിക്കുക</h2>
+                    <p className="text-base">{currentMonth()} {'\u20B9'}{selectedProp.fee || 50} അടയ്ക്കണോ?</p>
+                    <button onClick={handlePay} className="w-full bg-emerald-600 text-white min-h-[56px] rounded-2xl font-bold text-lg shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-300 flex items-center justify-center gap-2">✅ അതെ, അടയ്ക്കുക</button>
+                    <button onClick={() => setShowPayConfirm(false)} className="w-full min-h-[48px] text-base text-slate-600 font-medium bg-slate-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300">❌ റദ്ദാക്കുക</button>
+                  </div>
+                </div>,
+                document.body
+              )}
+
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-4">പേയ്മെന്റ് ചരിത്രം</h2>
+                {myPayments.length > 0 ? (
+                  <div role="list" className="space-y-1">
+                    {myPayments.map(p => (
+                      <div key={p.id} className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0 text-base" role="listitem">
+                        <div className="flex items-center gap-3">
+                          <Icons.Receipt size={18} color="#059669" aria-hidden="true"/>
+                          <span className="font-medium">{p.month}</span>
+                        </div>
+                        <span className="font-bold text-lg">{'\u20B9'}{p.amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-base text-slate-400 text-center py-6">പേയ്മെന്റ് ചരിത്രമില്ല</p>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Special Pickup Tab */}
+          {activeTab === 'pickup' && (
+            <section aria-label="പ്രത്യേക പിക്കപ്പ് അഭ്യർത്ഥനകൾ" role="tabpanel" className="space-y-4">
+              <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                <h2 className="font-bold text-xl mb-2">പ്രത്യേക പിക്കപ്പ് അഭ്യർത്ഥിക്കുക</h2>
+                <p className="text-base text-slate-500 mb-5">ഇ-മാലിന്യം, വലിയ മാലിന്യം, അപകടകാരി വസ്തുക്കൾ</p>
+                {showPickupForm ? (
+                  <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handlePickupRequest(); }}>
+                    <div>
+                      <label htmlFor="pickup-type" className="text-base font-medium text-slate-700 block mb-2">മാലിന്യ തരം</label>
+                      <select id="pickup-type" value={pickupForm.type} onChange={e => setPickupForm(p => ({ ...p, type: e.target.value }))}
+                        className="w-full border-2 border-slate-200 rounded-xl p-4 text-base min-h-[52px]" required>
+                        <option value="">🚮 മാലിന്യ തരം തിരഞ്ഞെടുക്കുക</option>
+                        <option value="ewaste">🔌 ഇ-മാലിന്യം (ഇലക്ട്രോണിക്സ്)</option>
+                        <option value="bulk">🪑 വലിയ മാലിന്യം (ഫർണിച്ചർ മുതലായവ)</option>
+                        <option value="hazardous">☣️ അപകടകാരി മാലിന്യം</option>
+                        <option value="garden">🌿 പൂന്തോട്ട മാലിന്യം</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="pickup-note" className="text-base font-medium text-slate-700 block mb-2">അധിക കുറിപ്പുകൾ</label>
+                      <textarea id="pickup-note" value={pickupForm.note} onChange={e => setPickupForm(p => ({ ...p, note: e.target.value }))}
+                        placeholder="ഐച്ഛികം" className="w-full border-2 border-slate-200 rounded-xl p-4 text-base min-h-[80px]" rows="2"/>
+                    </div>
+                    <div className="flex gap-3">
+                      <button type="submit" disabled={!pickupForm.type}
+                        className="flex-1 bg-emerald-600 text-white min-h-[52px] rounded-xl font-bold text-base disabled:opacity-50 focus:outline-none focus:ring-4 focus:ring-emerald-300 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+                        🚛 അഭ്യർത്ഥന സമർപ്പിക്കുക
+                      </button>
+                      <button type="button" onClick={() => setShowPickupForm(false)} className="px-6 min-h-[52px] border-2 border-slate-200 rounded-xl text-base font-medium focus:outline-none focus:ring-2 focus:ring-slate-300 flex items-center gap-2">❌ റദ്ദാക്കുക</button>
+                    </div>
+                  </form>
+                ) : (
+                  <button onClick={() => setShowPickupForm(true)}
+                    aria-label="പ്രത്യേക പിക്കപ്പ് അഭ്യർത്ഥന ഫോം തുറക്കുക"
+                    className="w-full border-2 border-dashed border-slate-300 rounded-2xl min-h-[120px] flex flex-col items-center justify-center gap-2 text-slate-500 hover:border-emerald-400 transition focus:outline-none focus:ring-4 focus:ring-emerald-300">
+                    <Icons.Trash2 size={36} aria-hidden="true"/>
+                    <span className="text-lg font-medium">പ്രത്യേക പിക്കപ്പ് അഭ്യർത്ഥിക്കുക</span>
+                  </button>
+                )}
+              </div>
+
+              {myRequests.length > 0 && (
+                <div className="bg-white rounded-2xl p-6 border-2 shadow-sm">
+                  <h2 className="font-bold text-xl mb-4">എന്റെ അഭ്യർത്ഥനകൾ</h2>
+                  <div role="list" className="space-y-1">
+                    {myRequests.map(r => (
+                      <div key={r.id} className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0 text-base" role="listitem">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">{r.type === 'ewaste' ? '🔌' : r.type === 'bulk' ? '🪑' : r.type === 'hazardous' ? '☣️' : r.type === 'garden' ? '🌿' : '🚮'}</span>
+                          <div>
+                            <p className="font-bold text-slate-800 capitalize">{r.type}</p>
+                            <p className="text-sm text-slate-500">{r.date}</p>
+                          </div>
+                        </div>
+                        <span className={`text-sm px-3 py-1 rounded-lg font-bold ${
+                          r.status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>{r.status === 'pending' ? '⏳ തീർപ്പാക്കിയിട്ടില്ല' : '✅ പൂർത്തിയായി'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+        </section>
+      );
+    }
+
+    // ─── Main App ───
+    function App() {
+      const [state, dispatch] = useReducer(reducer, null, getInitialState);
+      const [role, setRole] = useState(null);
+      const [isOnline, setIsOnline] = useState(navigator.onLine);
+      const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+      const mainRef = useRef(null);
+      const liveRef = useRef(null);
+
+      const announce = useCallback((msg) => {
+        if (liveRef.current) { liveRef.current.textContent = msg; }
+      }, []);
+
+      // Persist state
+      useEffect(() => {
+        const timer = setTimeout(() => saveState(state), 300);
+        return () => clearTimeout(timer);
+      }, [state]);
+
+      // Track online status
+      useEffect(() => {
+        const goOnline = () => { setIsOnline(true); setShowOfflineBanner(false); announce('നിങ്ങൾ ഓൺലൈനായി'); };
+        const goOffline = () => { setIsOnline(false); setShowOfflineBanner(true); announce('നിങ്ങൾ ഓഫ്ലൈനിലാണ്. കണക്ഷൻ തിരികെ ലഭിക്കുമ്പോൾ മാറ്റങ്ങൾ സമന്വയിക്കും.'); };
+        window.addEventListener('online', goOnline);
+        window.addEventListener('offline', goOffline);
+        return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); };
+      }, [announce]);
+
+      // Auto-hide offline banner
+      useEffect(() => {
+        if (showOfflineBanner) {
+          const t = setTimeout(() => setShowOfflineBanner(false), 4000);
+          return () => clearTimeout(t);
+        }
+      }, [showOfflineBanner]);
+
+      if (!role) {
+        return <RoleSelection setRole={setRole} />;
+      }
+
+      return (
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+          {/* Screen reader live region */}
+          <div ref={liveRef} role="status" aria-live="polite" aria-atomic="true" className="sr-only"></div>
+
+          {/* Skip to main content */}
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-700 focus:text-white focus:p-3 focus:rounded-lg focus:outline-none">
+            പ്രധാന ഉള്ളടക്കത്തിലേക്ക് പോകുക
+          </a>
+
+          {/* Offline Banner */}
+          {showOfflineBanner && !isOnline && (
+            <div role="alert" className="bg-amber-500 text-white text-center py-3 text-base font-medium flex items-center justify-center gap-2">
+              <Icons.WifiOff size={18} aria-hidden="true"/>
+              <span>നിങ്ങൾ ഓഫ്ലൈനിലാണ് — കണക്ഷൻ തിരികെ ലഭിക്കുമ്പോൾ മാറ്റങ്ങൾ സമന്വയിക്കും</span>
+            </div>
+          )}
+
+          {/* Navbar */}
+          <header className="bg-emerald-700 text-white shadow-md z-10 sticky top-0">
+            <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setRole(null)} aria-label="റോൾ തിരഞ്ഞെടുപ്പിലേക്ക് തിരികെ" className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-emerald-600 rounded-xl transition focus:outline-none focus:ring-2 focus:ring-white">
+                  <Icons.ArrowLeft size={24} aria-hidden="true" />
+                </button>
+                <div>
+                  <h1 className="text-xl font-bold flex items-center gap-2">
+                    <Icons.Recycle size={22} className="text-emerald-300" aria-hidden="true" />
+                    HarithaStream
+                  </h1>
+                  <span className="text-xs text-emerald-200 flex items-center gap-1" aria-label={`${role === 'volunteer' ? 'HKS പ്രവർത്തകൻ' : role === 'admin' ? 'അഡ്മിൻ' : 'താമസക്കാരൻ'} മൊഡ്യൂൾ`}>
+                    {role === 'volunteer' ? '🧑‍🌾' : role === 'admin' ? '⚙️' : '🏠'} {role === 'volunteer' ? 'HKS പ്രവർത്തകൻ' : role === 'admin' ? 'അഡ്മിൻ' : 'താമസക്കാരൻ'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {role === 'volunteer' && (
+                  <button onClick={() => setIsOnline(!isOnline)}
+                    aria-label={isOnline ? 'ഓഫ്ലൈൻ മോഡിലേക്ക് മാറുക' : 'ഓൺലൈൻ മോഡിലേക്ക് മാറുക'}
+                    aria-pressed={isOnline}
+                    className={`min-h-[44px] px-4 rounded-xl text-xs font-bold flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-white ${
+                      isOnline ? 'bg-emerald-600' : 'bg-red-500'
+                    }`}>
+                    {isOnline ? <><Icons.Wifi size={16} aria-hidden="true"/> ഓൺലൈൻ</> : <><Icons.WifiOff size={16} aria-hidden="true"/> ഓഫ്ലൈൻ</>}
+                  </button>
+                )}
+                <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-emerald-300' : 'bg-red-400'}`}
+                  aria-hidden="true"
+                  title={isOnline ? 'കണക്റ്റ് ചെയ്തു' : 'വിച്ഛേദിക്കപ്പെട്ടു'}></div>
+              </div>
+            </div>
+          </header>
+
+          {/* Sync indicator */}
+          {role === 'volunteer' && !isOnline && (
+            <div role="status" className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-sm text-amber-800 flex items-center gap-2 font-medium">
+              <Icons.Cloud size={18} aria-hidden="true"/>
+              <span>📴 ഓഫ്ലൈൻ മോഡ് — ശേഖരണങ്ങൾ ലോക്കലായി സേവ് ചെയ്യുന്നു</span>
+            </div>
+          )}
+
+          <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 overflow-auto p-5 focus:outline-none">
+            {role === 'volunteer' ? (
+              <VolunteerApp state={state} dispatch={dispatch} announce={announce} />
+            ) : role === 'admin' ? (
+              <AdminDashboard state={state} />
+            ) : (
+              <CitizenPortal state={state} dispatch={dispatch} announce={announce} />
+            )}
+          </main>
+
+          <footer className="text-center text-sm text-slate-400 py-4 border-t bg-white" role="contentinfo">
+            ഹരിതസ്ട്രീം v1.0 — ഓഫ്ലൈൻ-ഫസ്റ്റ് മാലിന്യ മാനേജ്മെന്റ്
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

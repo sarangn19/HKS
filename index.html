@@ -203,6 +203,13 @@
         case 'SET_WORKER': {
           return { ...state, currentVolunteer: action.payload };
         }
+        case 'UPDATE_WORKER': {
+          const { id, ...updates } = action.payload;
+          return {
+            ...state,
+            workers: state.workers.map(w => w.id === id ? { ...w, ...updates } : w),
+          };
+        }
         default:
           return state;
       }
@@ -847,7 +854,7 @@
                                 </div>
                               </div>
                             </div>
-                            <button onClick={() => { setEditingProp(p); setEditForm({ houseNo: p.houseNo, resident: p.resident, fee: p.fee || 50, status: p.status, paymentStatus: p.paymentStatus }); }}
+                            <button onClick={() => { setEditingProp(p); setEditForm({ houseNo: p.houseNo, resident: p.resident, ward: p.ward, fee: p.fee || 50, status: p.status, paymentStatus: p.paymentStatus }); }}
                               aria-label={`${p.houseNo} എഡിറ്റ് ചെയ്യുക`}
                               className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-white border-2 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700 transition focus:outline-none focus:ring-2 focus:ring-emerald-400">
                               <Icons.Edit size={18} aria-hidden="true"/>
@@ -885,6 +892,16 @@
                         <div className="bg-slate-50 rounded-xl p-4"><span className="font-bold block text-3xl">{rate}%</span><span className="text-slate-500">📊 ശേഖരണം</span></div>
                         <div className="bg-slate-50 rounded-xl p-4"><span className="font-bold block text-3xl">{assignedProps.length}</span><span className="text-slate-500">🏠 നിയോഗിക്കപ്പെട്ടവ</span></div>
                         <div className="bg-slate-50 rounded-xl p-4"><span className="font-bold block text-3xl">{assignedProps.filter(p => p.paymentStatus === 'paid').length}</span><span className="text-slate-500">💵 പേയ്മെന്റുകൾ</span></div>
+                      </div>
+                      <div className="mt-4 flex items-center gap-3 pt-3 border-t border-slate-100">
+                        <label className="text-sm font-medium text-slate-600">വാർഡ് മാറ്റുക:</label>
+                        <select value={w.ward}
+                          onChange={e => dispatch({ type: 'UPDATE_WORKER', payload: { id: w.id, ward: parseInt(e.target.value) } })}
+                          className="border-2 border-slate-200 rounded-xl px-3 py-2 text-base min-h-[44px] focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                          {[...new Set(properties.map(p => p.ward))].sort().map(wd => (
+                            <option key={wd} value={wd}>വാർഡ് {wd}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   );
@@ -1178,8 +1195,21 @@
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center" aria-hidden="true">
                 <Icons.Users size={28} color="#059669" />
-              </div>
-              <div>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-base font-medium mb-1"><Icons.Map size={16} className="text-emerald-600" aria-hidden="true"/> വാർഡ്</label>
+                    <div className="relative">
+                      <select value={editForm.ward || ''}
+                        onChange={e => setEditForm(f => ({...f, ward: parseInt(e.target.value)}))}
+                        className="w-full rounded-xl border-2 border-slate-200 p-4 pl-10 text-base min-h-[48px] focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 appearance-none">
+                        {[...new Set(state.properties.map(p => p.ward))].sort().map(w => (
+                          <option key={w} value={w}>വാർഡ് {w}</option>
+                        ))}
+                      </select>
+                      <Icons.Map size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" aria-hidden="true"/>
+                    </div>
+                  </div>
+                  <div>
                 <h1 className="font-bold text-2xl">{selectedProp.houseNo}</h1>
                 <p className="text-base text-slate-500">{selectedProp.resident} · വാർഡ് {selectedProp.ward}</p>
               </div>
@@ -1523,7 +1553,7 @@
             {role === 'volunteer' ? (
               <VolunteerApp state={state} dispatch={dispatch} announce={announce} />
             ) : role === 'admin' ? (
-              <AdminDashboard state={state} />
+              <AdminDashboard state={state} dispatch={dispatch} />
             ) : (
               <CitizenPortal state={state} dispatch={dispatch} announce={announce} />
             )}
